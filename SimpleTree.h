@@ -9,53 +9,65 @@ template < typename T>
 class TreeNode
 {
 public:
-    TreeNode()
-        : data(nullptr), parent(nullptr)
-    {}
-
     TreeNode(const T& data, TreeNode* parent = nullptr)
-        : data(data), parent(parent)
+        : m_parent(parent)
     {
-        //TODO move/ copy data
+        std::cout << "Tree()" << std::endl;
+        m_data = new T(data);
     }
-    TreeNode(const TreeNode& other)
+
+    TreeNode(T&& data, TreeNode* parent = nullptr)
+        : m_parent(parent)
     {
-        this = other;
+        std::cout << "Tree&&()" << std::endl;
+        m_data =  new T(data);
     }
+
     TreeNode(TreeNode&& other) noexcept
     {
-        this = std::move(other);
+        std::cout << "Tree(&&other)" << std::endl;
+        *this = std::move(other);
     }
+
     ~TreeNode()
     {
-        parent = nullptr;
-        for (auto *node : children)
+        std::cout << "~Tree" << std::endl;
+        m_parent = nullptr;
+        delete m_data;
+        for (auto* node : m_children)
             delete node;
     }
     TreeNode& operator=(const TreeNode& other) = delete;
     TreeNode& operator=(TreeNode&& other) noexcept
     {
-        if (this == &other)
+        std::cout << "Tree = &&other" << std::endl;
+        if (this == other)
             return *this;
-        data = std::exchange(other.data, nullptr);
-        parent = std::exchange(other.parent, nullptr);
-        children = std::move(other.children);
-        for (size_t i = 0 ; i < children ; ++i)
-            children[i].parent = this;
+        if (m_data)
+            delete  m_data;
+        m_data = other.m_data;
+        m_parent = other.m_data;
+        m_children = std::move(other.m_children);
+
+        for (auto* node : m_children)
+            node->m_parent(this);
+
+        other.m_data = nullptr;
+        other.m_parent = nullptr;
         return *this;
     }
 
-    bool operator==(const T& other)
+    bool operator==(const T& data)
     {
-        return data == other;
+        return m_data == data;
     }
     bool operator==(const TreeNode& other)
     {
-        return data == other.data;
+        return this == other.m_data;
     }
-    bool operator!=(const T& other)
+    bool operator!=(const T& data)
     {
-        return data != other;
+        return !(this == data);
     }
     bool operator!=(const TreeNode& other)
     {
@@ -64,28 +76,45 @@ public:
 
     void addChild (const T& data)
     {
-        children.push_back(new TreeNode(data, this));
+        m_children.push_back(new TreeNode(data, this));
+    }
+    void addChild (T&& data)
+    {
+        m_children.push_back(new TreeNode(data, this));
+    }
+    void addChild (const TreeNode& node)
+    {
+        node.m_parent = this;
+        m_children.push_back(node);
+    }
+    void addChild (TreeNode&& node)
+    {
+        node.m_parent = this;
+        m_children.push_back(node);
     }
 
     int getNumChildren()
     {
-        return children.size();
+        return m_children.size();
     }
-
+/// remove first indexed child
     void removeChild( const T& t )
     {
-        for ( size_t i = 0 ; i < children.size() ; ++i )
+        for ( size_t i = 0 ; i < m_children.size() ; ++i )
         {
-            if ( children.at(i).t == t )
+            if ( m_children.at(i).t == t )
             {
-                children.erase( children.begin()+i );
+                m_children.erase( m_children.begin()+i );
+
                 return;
             }
         }
     }
     void removeChildByIndex( const int index )
     {
-        children.erase( children.begin()+index );
+        m_children.erase(m_children.begin()+index);
+       // if (it != m_children.end());
+
     }
     void setValue( const T& data )
     {
@@ -94,26 +123,26 @@ public:
 
     T& value()
     {
-        return data;
+        return m_data;
     }
     const T& value() const
     {
-        return data;
+        return m_data;
     }
 
     TreeNode* getParent() const
     {
-        return parent;
+        return m_parent;
     }
 
     std::vector< TreeNode* >& getChildren()
     {
-        return children;
+        return m_children;
     }
 
     const std::vector< TreeNode* >& getChildren() const
     {
-        return children;
+        return m_children;
     }
 
     void print( const int depth = 0 ) const
@@ -125,17 +154,17 @@ public:
                 else
                     std::cout << "|-- ";
             }
-            std::cout << this->data << std::endl;
-            for ( size_t i = 0 ; i < children.size() ; ++i )
+            std::cout << this->m_data << std::endl;
+            for ( size_t i = 0 ; i < m_children.size() ; ++i )
             {
-                children.at(i)->print( depth+1 );
+                m_children.at(i)->print( depth+1 );
             }
         }
 
 private:
-    T data;
-    TreeNode *parent;
-    std::vector<TreeNode*> children;
+    T* m_data;
+    TreeNode *m_parent;
+    std::vector<TreeNode*> m_children;
 };
 
 
